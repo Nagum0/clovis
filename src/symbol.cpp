@@ -1,5 +1,9 @@
 #include "../include/symbol.h"
+#include "../include/exceptions.h"
 
+/*
+ *  Symbol class definitions.
+ * */
 Symbol::Symbol() {}
 
 Symbol::Symbol(std::string id, Type type, size_t stack_pos, size_t size) {
@@ -25,66 +29,60 @@ size_t Symbol::get_size() const {
     return size;
 }
 
-SymbolTable::SymbolTable() {}
+/*
+ *  SymbolTable class definitions. 
+ * */
+SymbolTable::SymbolTable() {
+    rsp = 0;
+    blocks.push_back(std::map<std::string, Symbol>());
+}
 
-size_t SymbolTable::get_size() const {
+std::vector<std::map<std::string, Symbol>> SymbolTable::get_blocks() {
+    return blocks;
+}
+
+std::map<std::string, Symbol> SymbolTable::get_top_block() {
+    return blocks.back();
+}
+
+size_t SymbolTable::get_rsp() {
+    return rsp;
+}
+
+size_t SymbolTable::get_top_block_size() {
     size_t size = 0;
+    auto top_block = blocks.back();
 
-    for (auto it = table.begin(); it != table.end(); ++it)
-        size += it->second.get_size();
+    for (auto entry : top_block)
+        size += entry.second.get_size();
 
     return size;
 }
 
-std::map<std::string, Symbol> SymbolTable::get_table() const {
-    return table;
+// TODO:
+size_t SymbolTable::get_required_rsp_padding() {
+    return 0;
+}
+
+void SymbolTable::push_block() {
+    blocks.push_back(std::map<std::string, Symbol>());
+}
+
+void SymbolTable::pop_block() {
+    rsp -= get_top_block_size();
+    blocks.pop_back();
 }
 
 void SymbolTable::add_symbol(Symbol symbol) {
-    table[symbol.get_id()] = symbol;
+    auto top_block = blocks.back();
+
+    if (top_block.count(symbol.get_id()) != 0)
+        throw SymbolRedeclarationException("Symbol: " + symbol.get_id() + " is already declared in this scope");
+
+    top_block[symbol.get_id()] = symbol;
+    rsp += symbol.get_size();
 }
 
-SymbolContainer::SymbolContainer() {}
-
-SymbolTable SymbolContainer::get_current_block_symbol_table() const {
-    return symbol_tables.back();
-}
-
-Symbol SymbolContainer::get_symbol(std::string id) const {
-    return get_current_block_symbol_table().get_table()[id];
-}
-
-size_t SymbolContainer::get_current_block_size() const {
-    return symbol_tables.back().get_size();
-}
-
-std::vector<SymbolTable> SymbolContainer::get_all_symbol_tables() const {
-    return symbol_tables;
-}
-
-size_t SymbolContainer::get_full_size() const {
-    size_t size = 0;
-
-    for (auto it = symbol_tables.begin(); it != symbol_tables.end(); ++it)
-        size += it->get_size();
-
-    return size;
-}
-
-size_t SymbolContainer::get_next_free_pos() const {
-    return next_free_pos;
-}
-
-void SymbolContainer::add_symbol(Symbol symbol) {
-    symbol_tables.back().add_symbol(symbol);
-    next_free_pos += symbol.get_size();
-}
-
-void SymbolContainer::add_block() {
-    symbol_tables.push_back(SymbolTable());
-}
-
-void SymbolContainer::pop_block() {
-    next_free_pos -= symbol_tables.back().get_size();
-    symbol_tables.pop_back();
+void SymbolTable::add_rsp(size_t n) {
+    rsp += n;
 }

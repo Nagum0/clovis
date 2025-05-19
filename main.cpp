@@ -5,7 +5,7 @@
 #include "build/lang.tab.hh"
 #include "include/symbol.h"
 
-SymbolContainer* symbol_container;
+SymbolTable* symbol_table;
 yyFlexLexer* lexer;
 
 int yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yylloc) {
@@ -28,8 +28,7 @@ void yy::parser::error(const location_type& loc, const std::string& msg) {
 
 int main(int argc, char* argv[]) {
     // -- INIT SYMBOL CONTAINER
-    symbol_container = new SymbolContainer();
-    symbol_container->add_block();
+    symbol_table = new SymbolTable();
 
     // -- READING THE SOURCE CODE
     std::ifstream in;
@@ -48,7 +47,7 @@ int main(int argc, char* argv[]) {
     parser.parse();
     
     delete lexer;
-    delete symbol_container;
+    delete symbol_table;
 
     return EXIT_SUCCESS;
 }

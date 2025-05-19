@@ -45,7 +45,7 @@ start:
                   << "push rbp\n"
                   << "mov rbp, rsp\n\n"
                   << $1
-                  << "add rsp, " << symbol_container->get_current_block_size() << "\n\n"
+                  << "add rsp, " << symbol_table->get_top_block_size() << "\n\n"
                   << "mov rsp, rbp\n"
                   << "pop rbp\n"
                   << "mov rax, 0\n"
@@ -73,15 +73,15 @@ statement:
 // Block declaration
 // { ... }
     T_OPEN_CURLY {
-        symbol_container->add_block();
+        symbol_table->push_block();
     }
     statements T_CLOSE_CURLY {
         std::stringstream ss;
 
         ss << $3
-           << "add rsp, " << symbol_container->get_current_block_size() << "\n";
+           << "add rsp, " << symbol_table->get_top_block_size() << "\n";
 
-        symbol_container->pop_block();
+        symbol_table->pop_block();
 
         $$ = ss.str();
     }
@@ -89,11 +89,14 @@ statement:
 // int x;
 |
     symbol_type T_ID T_SEMI {
-        if (symbol_container->get_current_block_symbol_table().get_table().count($2) != 0)
-            semantic_error(@2.begin.line, "Redeclaration of symbol: " + $2);
-        
         Symbol new_symbol($2, std::get<0>($1), symbol_container->get_next_free_pos(), std::get<1>($1));
-        symbol_container->add_symbol(new_symbol);
+
+        try {
+            symbol_table->add_symbol(new_symbol);
+        }
+        catch (const SymbolRedeclarationException& ex) {
+            semantic_error(@2.begin.line, ex.what());
+        }
         
         std::stringstream ss;
         ss << "sub rsp, " << new_symbol.get_size() << "\n";
@@ -102,12 +105,14 @@ statement:
     }
 // Variable assignment
 // x = 10;
+// TODO: All
 |
     T_ID T_ASSIGN expression T_SEMI {
-        if (symbol_container->get_current_block_symbol_table().get_table().count($1) == 0)
+        // FIXME: Add a way to look through entire stack if the top block doesn't have the symbol
+        if (symbol_table->get_top_block().count($1) == 0)
             semantic_error(@1.begin.line, "Undeclared symbol: " + $1);
 
-        Symbol symbol = symbol_container->get_symbol($1);
+        Symbol symbol = symbol_table->get_symbol($1);
 
         std::stringstream ss;
         ss << $3.get_code()
@@ -116,6 +121,7 @@ statement:
         $$ = ss.str();
     }
 // Debug print
+// FIXME: Add stack 16 byte alignment before call instruction
 |
     T_DBG T_OPEN expression T_CLOSE T_SEMI {
         std::stringstream ss;
@@ -136,6 +142,7 @@ expression:
         $$ = Expression(INT, ss.str());
     }
 // Identifier
+// TODO: All
 |
     T_ID {
         if (symbol_container->get_current_block_symbol_table().get_table().count($1) == 0)
