@@ -42,8 +42,12 @@ start:
         
         std::cout << "\nsegment .text\n"
                   << "main:\n"
+                  << "push rbp\n"
+                  << "mov rbp, rsp\n\n"
                   << $1
-                  << "add rsp, " << symbol_container->get_current_block_size() << "\n"
+                  << "add rsp, " << symbol_container->get_current_block_size() << "\n\n"
+                  << "mov rsp, rbp\n"
+                  << "pop rbp\n"
                   << "mov rax, 0\n"
                   << "ret\n";
     }
