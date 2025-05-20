@@ -23,6 +23,10 @@ class Expression {
 
         std::string debug_function();
 
+        std::string get_type_str();
+
+        std::string get_type_register();
+
     private:
         Type type;
         std::string code;

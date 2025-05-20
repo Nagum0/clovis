@@ -35,3 +35,19 @@ std::string Expression::debug_function() {
         default: return "";
     }
 }
+
+std::string Expression::get_type_str() {
+    switch (type) {
+        case BOOL: return "bool";
+        case INT: return "int";
+        default: return "";
+    }
+}
+
+std::string Expression::get_type_register() {
+    switch (type) {
+        case BOOL: return "al";
+        case INT: return "eax";
+        default: return "";
+    }
+}

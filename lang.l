@@ -26,6 +26,10 @@ false           return parser::token::T_FALSE_LIT;
 "{"             return parser::token::T_OPEN_CURLY;
 "}"             return parser::token::T_CLOSE_CURLY;
 "="             return parser::token::T_ASSIGN;
+"=="            return parser::token::T_EQUAL;
+"not"           return parser::token::T_NOT;
+"and"           return parser::token::T_AND;
+"or"            return parser::token::T_OR;
 
 ({LETTER}|_)+({LETTER}|{DIGIT}|_)*      return parser::token::T_ID;
 {DIGIT}+        return parser::token::T_INT_LIT;

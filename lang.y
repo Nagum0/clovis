@@ -31,6 +31,15 @@
 %token T_BOOL
 %token T_TRUE_LIT
 %token T_FALSE_LIT
+%token T_EQUAL
+%token T_NOT
+%token T_AND
+%token T_OR
+
+%left T_OR
+%left T_AND
+%left T_EQUAL
+%left T_NOT
 
 %type <std::string> statement statements
 %type <Expression> expression
@@ -150,18 +159,18 @@ expression:
 // Integer literal
     T_INT_LIT {
         std::stringstream ss;
-        ss << "mov eax, " << $1 << "\n";
+        ss << "mov rax, " << $1 << "\n";
         $$ = Expression(INT, ss.str());
     }
 // Bool literal: true
 |
     T_TRUE_LIT {
-        $$ = Expression(BOOL, "mov al, 1\n");
+        $$ = Expression(BOOL, "mov rax, 1\n");
     }
 // Bool literal: false
 |
     T_FALSE_LIT {
-        $$ = Expression(BOOL, "mov al, 0\n");
+        $$ = Expression(BOOL, "mov rax, 0\n");
     }
 // Identifier
 |
@@ -173,9 +182,70 @@ expression:
         
 
         std::stringstream ss;
-        ss << "mov eax, [rbp - " << symbol.value().get_stack_pos() + symbol.value().get_size() << "]\n";
+        ss << "mov rax, [rbp - " << symbol.value().get_stack_pos() + symbol.value().get_size() << "]\n";
         
         $$ = Expression(symbol.value().get_type(), ss.str());
+    }
+// Group expression
+|
+    T_OPEN expression T_CLOSE {
+        $$ = Expression($2.get_type(), $2.get_code());
+    }
+// Equality expression
+|
+    expression T_EQUAL expression {
+        if ($1.get_type() != $3.get_type())
+            semantic_error(@1.begin.line, "== doesn't work between types " + $1.get_type_str() + " and " + $3.get_type_str());
+        
+        std::stringstream ss;
+        ss << $3.get_code()
+           << "push rax\n"
+           << $1.get_code()
+           << "pop rbx\n"
+           << "cmp rax, rbx\n"
+           << "sete al\n"
+           << "movzx rax, al\n";
+
+        $$ = Expression(BOOL, ss.str());
+    }
+// And expression
+|
+    expression T_AND expression {
+        if ($1.get_type() != $3.get_type())
+            semantic_error(@1.begin.line, "and doesn't work between types " + $1.get_type_str() + " and " + $3.get_type_str());
+        
+        std::stringstream ss;
+        ss << $3.get_code()
+           << "push rax\n"
+           << $1.get_code()
+           << "pop rbx\n"
+           << "and rax, rbx\n";
+
+        $$ = Expression($1.get_type(), ss.str());
+    }
+// Or expression
+|
+    expression T_OR expression {
+        if ($1.get_type() != $3.get_type())
+            semantic_error(@1.begin.line, "and doesn't work between types " + $1.get_type_str() + " and " + $3.get_type_str());
+        
+        std::stringstream ss;
+        ss << $3.get_code()
+           << "push rax\n"
+           << $1.get_code()
+           << "pop rbx\n"
+           << "or rax, rbx\n";
+
+        $$ = Expression($1.get_type(), ss.str());
+    }
+// FIXME: Not expression
+|
+    T_NOT expression {
+        std::stringstream ss;
+        ss << $2.get_code()
+           << "not rax\n";
+
+        $$ = Expression($2.get_type(), ss.str());
     }
 ;
 
