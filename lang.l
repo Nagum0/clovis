@@ -14,7 +14,7 @@ LETTER      [a-zA-Z]
 
 %%
 
-dbg             return parser::token::T_DBG;
+__dbg__         return parser::token::T_DBG;
 int             return parser::token::T_INT;
 
 ";"             return parser::token::T_SEMI;
