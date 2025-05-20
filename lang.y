@@ -87,7 +87,7 @@ statement:
 
         $$ = ss.str();
     }
-// Variable definition
+// Variable declaration
 // int x;
 |
     symbol_type T_ID T_SEMI {
@@ -112,7 +112,7 @@ statement:
         std::optional<Symbol> symbol = symbol_table[$1];
 
         if (!symbol)
-            semantic_error(@1.begin.line, "Undeclared symbol: " + $1);
+            semantic_error(@1.begin.line, "Undeclared symbol " + $1);
 
         std::stringstream ss;
         ss << $3.get_code()
@@ -121,13 +121,19 @@ statement:
         $$ = ss.str();
     }
 // Debug print
-// FIXME: Add stack 16 byte alignment before call instruction
 |
     T_DBG T_OPEN expression T_CLOSE T_SEMI {
+        size_t padding = symbol_table.get_required_rsp_padding();
+        symbol_table.add_rsp(padding);
+
         std::stringstream ss;
         ss << $3.get_code()
            << "mov rdi, rax\n"
-           << "call dbg_print_int\n";
+           << "sub rsp, " << padding << "\n"
+           << "call dbg_print_int\n"
+           << "add rsp, " << padding << "\n";
+        
+        symbol_table.add_rsp(-padding);
 
         $$ = ss.str();
     }
@@ -146,7 +152,7 @@ expression:
         std::optional<Symbol> symbol = symbol_table[$1];
 
         if (!symbol)
-            semantic_error(@1.begin.line, "Undeclared symbol: " + $1);
+            semantic_error(@1.begin.line, "Undeclared symbol " + $1);
         
 
         std::stringstream ss;

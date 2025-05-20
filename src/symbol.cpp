@@ -61,19 +61,19 @@ size_t SymbolTable::get_top_block_size() {
     return size;
 }
 
-// TODO:
 size_t SymbolTable::get_required_rsp_padding() {
-    return 0;
+    return ((15 + rsp) & (~15)) - rsp;
 }
 
 std::optional<Symbol> SymbolTable::operator[](std::string id) {
     std::optional<Symbol> val;
 
     for (auto it = blocks.rbegin(); it != blocks.rend(); ++it)
-        if (it->count(id) > 0)
-            val = it->at(id);
+        if (it->count(id) > 0) {
+            return it->at(id);
+        }
 
-    return val;
+    return std::nullopt;
 }
 
 bool SymbolTable::contains(std::string id) {
@@ -97,7 +97,7 @@ void SymbolTable::add_symbol(Symbol symbol) {
     auto& top_block = blocks.back();
 
     if (top_block.count(symbol.get_id()) > 0)
-        throw SymbolRedeclarationException("Symbol: " + symbol.get_id() + " is already declared in this scope");
+        throw SymbolRedeclarationException("Symbol " + symbol.get_id() + " is already declared in this scope");
 
     top_block[symbol.get_id()] = symbol;
     rsp += symbol.get_size();
