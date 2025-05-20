@@ -16,6 +16,9 @@ LETTER      [a-zA-Z]
 
 __dbg__         return parser::token::T_DBG;
 int             return parser::token::T_INT;
+bool            return parser::token::T_BOOL;
+true            return parser::token::T_TRUE_LIT;
+false           return parser::token::T_FALSE_LIT;
 
 ";"             return parser::token::T_SEMI;
 "("             return parser::token::T_OPEN;

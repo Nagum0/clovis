@@ -27,3 +27,11 @@ std::string Expression::get_code() const {
 void Expression::set_code(std::string code) {
     this->code = code;
 }
+
+std::string Expression::debug_function() {
+    switch (type) {
+        case BOOL: return "dbg_print_bool";
+        case INT: return "dbg_print_int";
+        default: return "";
+    }
+}

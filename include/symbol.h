@@ -19,11 +19,15 @@ class Symbol {
         Symbol();
         Symbol(std::string id, Type type, size_t stack_pos, size_t size);
         
-        // GETTERS
         std::string get_id() const;
+
         Type get_type() const;
+
         size_t get_stack_pos() const;
+
         size_t get_size() const;
+
+        std::string get_value_register();
 
     private:
         std::string id;

@@ -1,7 +1,7 @@
 #include "../include/symbol.h"
 #include "../include/exceptions.h"
 #include <optional>
-#include <iostream>
+#include <string>
 
 /*
  *  Symbol class definitions.
@@ -29,6 +29,14 @@ size_t Symbol::get_stack_pos() const {
 
 size_t Symbol::get_size() const {
     return size;
+}
+
+std::string Symbol::get_value_register() {
+    switch (type) {
+        case BOOL: return "al";
+        case INT: return "eax";
+        default: return "";
+    }
 }
 
 /*

@@ -28,6 +28,9 @@
 %token T_OPEN_CURLY
 %token T_CLOSE_CURLY
 %token T_ASSIGN
+%token T_BOOL
+%token T_TRUE_LIT
+%token T_FALSE_LIT
 
 %type <std::string> statement statements
 %type <Expression> expression
@@ -40,7 +43,7 @@ start:
         std::cout << "section .note.GNU-stack\n";
 
         std::cout << "\nglobal main\n"
-                  << "extern dbg_print_int\n";
+                  << "extern dbg_print_int, dbg_print_bool\n";
         
         std::cout << "\nsegment .text\n"
                   << "main:\n"
@@ -58,6 +61,10 @@ start:
 symbol_type:
     T_INT {
         $$ = std::make_tuple(INT, 4);
+    }
+|
+    T_BOOL {
+        $$ = std::make_tuple(BOOL, 1);
     }
 ;
 
@@ -88,7 +95,6 @@ statement:
         $$ = ss.str();
     }
 // Variable declaration
-// int x;
 |
     symbol_type T_ID T_SEMI {
         Symbol new_symbol($2, std::get<0>($1), symbol_table.get_rsp(), std::get<1>($1));
@@ -106,7 +112,6 @@ statement:
         $$ = ss.str();
     }
 // Variable assignment
-// x = 10;
 |
     T_ID T_ASSIGN expression T_SEMI {
         std::optional<Symbol> symbol = symbol_table[$1];
@@ -116,7 +121,7 @@ statement:
 
         std::stringstream ss;
         ss << $3.get_code()
-           << "mov [rbp - " << symbol.value().get_stack_pos() + symbol.value().get_size() << "], eax\n";
+           << "mov [rbp - " << symbol.value().get_stack_pos() + symbol.value().get_size() << "], " << symbol.value().get_value_register() << "\n";
     
         $$ = ss.str();
     }
@@ -126,11 +131,13 @@ statement:
         size_t padding = symbol_table.get_required_rsp_padding();
         symbol_table.add_rsp(padding);
 
+        std::string debug_function = $3.debug_function();
+
         std::stringstream ss;
         ss << $3.get_code()
            << "mov rdi, rax\n"
            << "sub rsp, " << padding << "\n"
-           << "call dbg_print_int\n"
+           << "call " << debug_function << "\n"
            << "add rsp, " << padding << "\n";
         
         symbol_table.add_rsp(-padding);
@@ -145,6 +152,16 @@ expression:
         std::stringstream ss;
         ss << "mov eax, " << $1 << "\n";
         $$ = Expression(INT, ss.str());
+    }
+// Bool literal: true
+|
+    T_TRUE_LIT {
+        $$ = Expression(BOOL, "mov al, 1\n");
+    }
+// Bool literal: false
+|
+    T_FALSE_LIT {
+        $$ = Expression(BOOL, "mov al, 0\n");
     }
 // Identifier
 |
