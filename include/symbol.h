@@ -8,6 +8,7 @@
 #include "expression.h"
 #include <map>
 #include <vector>
+#include <optional>
 
 /*
  *  A Symbol currently represents variables.
@@ -64,6 +65,18 @@ class SymbolTable {
         size_t get_required_rsp_padding();
         
         /*
+         *  @param id The id to search for.
+         *  @return An optional symbol found by the given id. First looks at the top block then the rest.
+         * */
+        std::optional<Symbol> operator[](std::string id);
+        
+        /*
+         *  @param id The id to check.
+         *  @return True if any of the blocks contains the given id. It first checks the top block then the rest.
+         * */
+        bool contains(std::string id);
+        
+        /*
          *  Pushes a new empty block onto the stack.
          * */
         void push_block();
@@ -75,6 +88,8 @@ class SymbolTable {
 
         /*
          *  Adds a new symbol to the top block's symbol table and adjusts the rsp.
+         *  @param symbol The Symbol to add.
+         *  @throws SymbolRedeclarationException if the symbol already exists in the top block.
          * */
         void add_symbol(Symbol symbol);
 

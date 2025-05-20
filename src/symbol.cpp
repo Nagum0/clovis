@@ -1,5 +1,7 @@
 #include "../include/symbol.h"
 #include "../include/exceptions.h"
+#include <optional>
+#include <iostream>
 
 /*
  *  Symbol class definitions.
@@ -64,6 +66,24 @@ size_t SymbolTable::get_required_rsp_padding() {
     return 0;
 }
 
+std::optional<Symbol> SymbolTable::operator[](std::string id) {
+    std::optional<Symbol> val;
+
+    for (auto it = blocks.rbegin(); it != blocks.rend(); ++it)
+        if (it->count(id) > 0)
+            val = it->at(id);
+
+    return val;
+}
+
+bool SymbolTable::contains(std::string id) {
+    for (auto it = blocks.rbegin(); it != blocks.rend(); ++it)
+        if (it->count(id) > 0)
+            return true;
+    
+    return false;
+}
+
 void SymbolTable::push_block() {
     blocks.push_back(std::map<std::string, Symbol>());
 }
@@ -74,9 +94,9 @@ void SymbolTable::pop_block() {
 }
 
 void SymbolTable::add_symbol(Symbol symbol) {
-    auto top_block = blocks.back();
+    auto& top_block = blocks.back();
 
-    if (top_block.count(symbol.get_id()) != 0)
+    if (top_block.count(symbol.get_id()) > 0)
         throw SymbolRedeclarationException("Symbol: " + symbol.get_id() + " is already declared in this scope");
 
     top_block[symbol.get_id()] = symbol;

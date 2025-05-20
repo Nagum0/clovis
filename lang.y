@@ -6,14 +6,16 @@
     #include <string>
     #include <sstream>
     #include <tuple>
+    #include <optional>
     #include "../include/expression.h"
     #include "../include/symbol.h"
     #include "../include/semantics.h"
+    #include "../include/exceptions.h"
 }
 
 %code provides {
     int yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yylloc);
-    extern SymbolContainer* symbol_container;
+    extern SymbolTable symbol_table;
 }
 
 %token T_DBG
@@ -45,7 +47,7 @@ start:
                   << "push rbp\n"
                   << "mov rbp, rsp\n\n"
                   << $1
-                  << "add rsp, " << symbol_table->get_top_block_size() << "\n\n"
+                  << "add rsp, " << symbol_table.get_top_block_size() << "\n\n"
                   << "mov rsp, rbp\n"
                   << "pop rbp\n"
                   << "mov rax, 0\n"
@@ -73,15 +75,15 @@ statement:
 // Block declaration
 // { ... }
     T_OPEN_CURLY {
-        symbol_table->push_block();
+        symbol_table.push_block();
     }
     statements T_CLOSE_CURLY {
         std::stringstream ss;
 
         ss << $3
-           << "add rsp, " << symbol_table->get_top_block_size() << "\n";
+           << "add rsp, " << symbol_table.get_top_block_size() << "\n";
 
-        symbol_table->pop_block();
+        symbol_table.pop_block();
 
         $$ = ss.str();
     }
@@ -89,10 +91,10 @@ statement:
 // int x;
 |
     symbol_type T_ID T_SEMI {
-        Symbol new_symbol($2, std::get<0>($1), symbol_container->get_next_free_pos(), std::get<1>($1));
+        Symbol new_symbol($2, std::get<0>($1), symbol_table.get_rsp(), std::get<1>($1));
 
         try {
-            symbol_table->add_symbol(new_symbol);
+            symbol_table.add_symbol(new_symbol);
         }
         catch (const SymbolRedeclarationException& ex) {
             semantic_error(@2.begin.line, ex.what());
@@ -105,18 +107,16 @@ statement:
     }
 // Variable assignment
 // x = 10;
-// TODO: All
 |
     T_ID T_ASSIGN expression T_SEMI {
-        // FIXME: Add a way to look through entire stack if the top block doesn't have the symbol
-        if (symbol_table->get_top_block().count($1) == 0)
-            semantic_error(@1.begin.line, "Undeclared symbol: " + $1);
+        std::optional<Symbol> symbol = symbol_table[$1];
 
-        Symbol symbol = symbol_table->get_symbol($1);
+        if (!symbol)
+            semantic_error(@1.begin.line, "Undeclared symbol: " + $1);
 
         std::stringstream ss;
         ss << $3.get_code()
-           << "mov [rbp - " << symbol.get_stack_pos() + symbol.get_size() << "], eax\n";
+           << "mov [rbp - " << symbol.value().get_stack_pos() + symbol.value().get_size() << "], eax\n";
     
         $$ = ss.str();
     }
@@ -133,7 +133,6 @@ statement:
     }
 ;
 
-// All expression are evaluated and their result is moved into a register.
 expression:
 // Integer literal
     T_INT_LIT {
@@ -142,18 +141,18 @@ expression:
         $$ = Expression(INT, ss.str());
     }
 // Identifier
-// TODO: All
 |
     T_ID {
-        if (symbol_container->get_current_block_symbol_table().get_table().count($1) == 0)
+        std::optional<Symbol> symbol = symbol_table[$1];
+
+        if (!symbol)
             semantic_error(@1.begin.line, "Undeclared symbol: " + $1);
         
-        Symbol symbol = symbol_container->get_symbol($1);
 
         std::stringstream ss;
-        ss << "mov eax, [rbp - " << symbol.get_stack_pos() + symbol.get_size() << "]\n";
+        ss << "mov eax, [rbp - " << symbol.value().get_stack_pos() + symbol.value().get_size() << "]\n";
         
-        $$ = Expression(symbol.get_type(), ss.str());
+        $$ = Expression(symbol.value().get_type(), ss.str());
     }
 ;
 
