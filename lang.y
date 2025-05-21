@@ -19,12 +19,12 @@
 }
 
 %token T_DBG
-%token T_INT
+%token T_UINT
 %token T_SEMI
 %token T_OPEN
 %token T_CLOSE
 %token <std::string> T_ID;
-%token <std::string> T_INT_LIT
+%token <std::string> T_UINT_LIT
 %token T_OPEN_CURLY
 %token T_CLOSE_CURLY
 %token T_ASSIGN
@@ -68,7 +68,7 @@ start:
 ;
 
 symbol_type:
-    T_INT {
+    T_UINT {
         $$ = std::make_tuple(INT, 4);
     }
 |
@@ -157,7 +157,7 @@ statement:
 
 expression:
 // Integer literal
-    T_INT_LIT {
+    T_UINT_LIT {
         std::stringstream ss;
         ss << "mov rax, " << $1 << "\n";
         $$ = Expression(INT, ss.str());
@@ -195,7 +195,7 @@ expression:
 |
     expression T_EQUAL expression {
         if ($1.get_type() != $3.get_type())
-            semantic_error(@1.begin.line, "== doesn't work between types " + $1.get_type_str() + " and " + $3.get_type_str());
+            semantic_error(@1.begin.line, "'==' doesn't work between types " + $1.get_type_str() + " and " + $3.get_type_str());
         
         std::stringstream ss;
         ss << $3.get_code()
@@ -212,7 +212,7 @@ expression:
 |
     expression T_AND expression {
         if ($1.get_type() != $3.get_type())
-            semantic_error(@1.begin.line, "and doesn't work between types " + $1.get_type_str() + " and " + $3.get_type_str());
+            semantic_error(@1.begin.line, "'and' doesn't work between types " + $1.get_type_str() + " and " + $3.get_type_str());
         
         std::stringstream ss;
         ss << $3.get_code()
@@ -227,7 +227,7 @@ expression:
 |
     expression T_OR expression {
         if ($1.get_type() != $3.get_type())
-            semantic_error(@1.begin.line, "and doesn't work between types " + $1.get_type_str() + " and " + $3.get_type_str());
+            semantic_error(@1.begin.line, "'or' doesn't work between types " + $1.get_type_str() + " and " + $3.get_type_str());
         
         std::stringstream ss;
         ss << $3.get_code()
@@ -238,12 +238,17 @@ expression:
 
         $$ = Expression($1.get_type(), ss.str());
     }
-// FIXME: Not expression
+// Not expression
 |
     T_NOT expression {
+        if ($2.get_type() != BOOL)
+            semantic_error(@1.begin.line, "'not' doesn't work on type: " + $2.get_type_str());
+
         std::stringstream ss;
         ss << $2.get_code()
-           << "not rax\n";
+           << "test rax, rax\n"
+           << "sete al\n"
+           << "movzx rax, al\n";
 
         $$ = Expression($2.get_type(), ss.str());
     }

@@ -12,9 +12,9 @@ int yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yylloc) 
     yylloc->begin.line = lexer->lineno();
     int token = lexer->yylex();
     
-    if (token == yy::parser::token::T_INT 
+    if (token == yy::parser::token::T_UINT 
         || token == yy::parser::token::T_ID
-        || token == yy::parser::token::T_INT_LIT) {
+        || token == yy::parser::token::T_UINT_LIT) {
         yylval->build(std::string(lexer->YYText()));
     }
 
@@ -27,9 +27,6 @@ void yy::parser::error(const location_type& loc, const std::string& msg) {
 }
 
 int main(int argc, char* argv[]) {
-    // -- INIT SYMBOL CONTAINER
-    // symbol_table = new SymbolTable();
-
     // -- READING THE SOURCE CODE
     std::ifstream in;
     
@@ -47,7 +44,6 @@ int main(int argc, char* argv[]) {
     parser.parse();
     
     delete lexer;
-    // delete symbol_table;
 
     return EXIT_SUCCESS;
 }

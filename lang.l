@@ -15,7 +15,7 @@ LETTER      [a-zA-Z]
 %%
 
 __dbg__         return parser::token::T_DBG;
-int             return parser::token::T_INT;
+uint            return parser::token::T_UINT;
 bool            return parser::token::T_BOOL;
 true            return parser::token::T_TRUE_LIT;
 false           return parser::token::T_FALSE_LIT;
@@ -32,7 +32,7 @@ false           return parser::token::T_FALSE_LIT;
 "or"            return parser::token::T_OR;
 
 ({LETTER}|_)+({LETTER}|{DIGIT}|_)*      return parser::token::T_ID;
-{DIGIT}+        return parser::token::T_INT_LIT;
+{DIGIT}+        return parser::token::T_UINT_LIT;
 
 {WS}+           // DO NOTHING
 
